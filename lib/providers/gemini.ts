@@ -142,10 +142,15 @@ Output Schema requirements:
 }
 `;
 
+  const ai = new GoogleGenAI({ apiKey });
+  const primaryModel = env.GEMINI_MODEL || "gemini-3.8-flash";
+  const fallbackModel = "gemini-2.5-flash";
+
+  let responseText: string | undefined;
+
   try {
-    const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
-      model: env.GEMINI_MODEL || "gemini-3.8-flash",
+      model: primaryModel,
       contents: [
         {
           role: "user",
@@ -160,8 +165,39 @@ Output Schema requirements:
         temperature: 0.2,
       },
     });
+    responseText = response.text?.trim();
+  } catch (primaryErr: any) {
+    // If primary model experiences high demand (503), quota limits, or is unavailable, retry with fallback
+    console.warn(`Gemini (${primaryModel}) failed: ${primaryErr.message}. Attempting fallback to ${fallbackModel}...`);
+    try {
+      const fallbackResponse = await ai.models.generateContent({
+        model: fallbackModel,
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: systemInstructions },
+              { text: `WEBSITE FACTS AND DETERMINISTIC FINDINGS:\n${JSON.stringify(factsPayload, null, 2)}` },
+            ],
+          },
+        ],
+        config: {
+          responseMimeType: "application/json",
+          temperature: 0.2,
+        },
+      });
+      responseText = fallbackResponse.text?.trim();
+    } catch (fallbackErr: any) {
+      console.error("Gemini fallback model also failed:", fallbackErr.message);
+      return {
+        status: "failed",
+        output: createFallbackOutput(pages, findings),
+        error: `Gemini analysis unavailable (${primaryErr.message}). Deterministic baseline recommendations displayed.`,
+      };
+    }
+  }
 
-    const responseText = response.text?.trim();
+  try {
     if (!responseText) {
       throw new Error("Received empty response from Gemini");
     }
@@ -184,7 +220,7 @@ Output Schema requirements:
       output: parsed.data,
     };
   } catch (err: any) {
-    console.error("Gemini provider error:", err.message);
+    console.error("Gemini parse error:", err.message);
     return {
       status: "failed",
       output: createFallbackOutput(pages, findings),
