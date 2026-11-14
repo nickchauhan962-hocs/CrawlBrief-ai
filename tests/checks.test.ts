@@ -126,6 +126,6 @@ describe("Deterministic Technical & Content Checks", () => {
 
     const altFinding = findings.find((f) => f.check_key === "image_alt_coverage");
     expect(altFinding).toBeDefined();
-    expect(altFinding?.evidence.percentage_missing).toBe(67);
+    expect(altFinding?.evidence?.percentage_missing).toBe(67);
   });
 });

@@ -10,7 +10,7 @@ const envSchema = z.object({
 
   // Google APIs
   GEMINI_API_KEY: z.string().min(1).optional(),
-  GEMINI_MODEL: z.string().default("gemini-2.5-flash"),
+  GEMINI_MODEL: z.string().default("gemini-3.8-flash"),
   PAGESPEED_API_KEY: z.string().min(1).optional(),
 
   // Cloudflare Turnstile

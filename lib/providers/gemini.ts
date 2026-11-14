@@ -145,7 +145,7 @@ Output Schema requirements:
   try {
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
-      model: env.GEMINI_MODEL || "gemini-2.5-flash",
+      model: env.GEMINI_MODEL || "gemini-3.8-flash",
       contents: [
         {
           role: "user",
